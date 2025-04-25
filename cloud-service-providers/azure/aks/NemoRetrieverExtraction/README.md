@@ -10,7 +10,7 @@ Also reference https://docs.nvidia.com/nemo/retriever/extraction/support-matrix/
 Please follow [Create AKS instruction](./setup/README.md) to create AKS.
 And two spectial Notes
  - NeMo Retriever Extraction need 6 GPUs but you can run it in single GPU with the help of Time slicing configMap for gpu operator
- - Please add --enable-ultra-ssd flag when yo ucreate gpu nodepool.
+ - Please add --enable-ultra-ssd --max-pods 110 --zones flags when you create gpu nodepool.
 
 ###  Install Time-slicing ConfigMap (Optional)
 
@@ -24,7 +24,7 @@ kubectl get node minikube -o json | jq '.metadata.labels | to_entries | map(sele
 ```
 Create Configmap
 ```
-cat << EOF > ../resources/manifests/time-slicing-config-fine.yaml
+cat << EOF > time-slicing-config-fine.yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -43,7 +43,7 @@ EOF
 ```
 Apple Configmap
 ```
-kubectl create -n gpu-operator -f ../resources/manifests/time-slicing-config-fine.yaml
+kubectl create -n gpu-operator -f time-slicing-config-fine.yaml
 ```
 Verify Creation of ConfigMap (Optional)
 ```
@@ -61,7 +61,7 @@ kubectl get events -n gpu-operator --sort-by='.lastTimestamp'
 ```
 Label Nodes for Time-slicing Configs tp Take Effect
 ```
-ubectl label node \
+kubectl label node \
     --selector=nvidia.com/gpu.product=NVIDIA-A100-SXM4-80GB \
     nvidia.com/device-plugin.config=a100-80gb
 ```
@@ -201,7 +201,8 @@ spec:
 ```
 kubectl exec -it nv-ingest-test --- bash
 apt-get update
-pip install nv-ingest-client
+apt-get install python3-pip
+pip install nv-ingest-client --break-system-packages
 ```
 Copy test data you want to test into pod
 ```
@@ -216,3 +217,24 @@ Go to the test pod and go to the test data folder and run the following command
 nv-ingest-cli   --doc "./*.pdf"  --output_directory ./processed_docs   --task='extract:{"document_type": "pdf", "extract_text": true, "extract_images": true, "extract_tables": true, "extract_charts": true}'   --client_host=<cluster ip of nv-ingest>   --client_port=7670
 ```
 Copy the test data to /mnt/azure and run the same command to test netapp performance
+
+### Test Result (ver 25.3.0)
+
+[Dataset of PDF Files from Kaggle](https://www.kaggle.com/datasets/manisha717/dataset-of-pdf-files)
+
+
+| ANF-ultra NFS                                             | $/hour  | Pages/sec | Pages /$ | Time slicing | 
+| --------------------------------------------------------- | ------- | --------- | -------- | ------------ |
+| 1x Standard_NC24ads_A100_v4                               |  3.67   | N/A       | N/A      |              |
+| 1x Standard_NC40ads_H100_v5                               |  6.98   | 8.36      | 4311     |   6          |
+| 1x Standard_NC48ads_A100_v4                               |  7.35   | 7.43      | 3639     |   3          |
+| 1x Standard_NC80ads_H100_v5                               | 13.96   | 8.82      | 2274     |   3          |
+| 1x Standard_NC96ads_A100_v4                               | 14.69   | 7.19      | 1762     |   2          |
+| 1x Standard_NC96ads_A100_v4 + 1x Standard_NC48ads_A100_v4 | 22.04   | 7.41      | 1210     |              |
+| 3x Standard_NC48ads_A100_v4                               | 22.05   |           |          |              |
+| 1x Standard_ND96asr_v4                                    | 27.2    | 6.6       |  873     |              |
+| 2x Standard_NC96ads_A100_v4                               | 29.38   |           |          |              |
+| 1x Standard_ND96amsr_A100_v4                              | 32.77   |           |          |              |
+| 3x Standard_NC80ads_H100_v5                               | 41.88   | 7.53      |  647     |              |
+| 1x Standard_ND96isr_H100_v5                               | 98.32   |           |          |              |
+
