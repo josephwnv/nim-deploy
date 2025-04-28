@@ -225,7 +225,7 @@ Copy the test data to /mnt/azure and run the same command to test netapp perform
 
 | ANF-ultra NFS                                             | $/hour  | Pages/sec | Pages /$ | Time slicing | 
 | --------------------------------------------------------- | ------- | --------- | -------- | ------------ |
-| 1x Standard_NC24ads_A100_v4                               |  3.67   | 6.56      | 6435     |   6s          |
+| 1x Standard_NC24ads_A100_v4                               |  3.67   | 6.56      | 6435     |   6          |
 | 1x Standard_NC40ads_H100_v5                               |  6.98   | 8.36      | 4311     |   6          |
 | 1x Standard_NC48ads_A100_v4                               |  7.35   | 7.43      | 3639     |   3          |
 | 1x Standard_NC80ads_H100_v5                               | 13.96   | 8.82      | 2274     |   3          |
