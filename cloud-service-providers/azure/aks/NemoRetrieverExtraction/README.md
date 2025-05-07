@@ -1,5 +1,9 @@
 # NeMo Retriever Extraction (also known as nv-ingest)
 
+## Architecture Diagrame
+
+![image](./diagram.jpg)
+
 ## Prerequisites
 
 Please follow [Pre-rquirement instruction](./prerequisites/README.md) to get ready for AKS creation.
@@ -238,3 +242,42 @@ Copy the test data to /mnt/azure and run the same command to test netapp perform
 | 3x Standard_NC80ads_H100_v5                               | 41.88   | 7.53      |  647     |              |
 | 1x Standard_ND96isr_H100_v5                               | 98.32   |           |          |              |
 
+### Test Result (ver 25.4.2)
+
+
+[Dataset of PDF Files from Kaggle](https://www.kaggle.com/datasets/manisha717/dataset-of-pdf-files)
+
+
+| ANF-ultra NFS                                             | $/hour  | Pages/sec | Pages /$ | Time slicing | 
+| --------------------------------------------------------- | ------- | --------- | -------- | ------------ |
+| 1x Standard_NC24ads_A100_v4                               |  3.67   |           |          |   6          |
+| 1x Standard_NC40ads_H100_v5                               |  6.98   | 7.78      | 4012     |   6          |
+| 1x Standard_NC48ads_A100_v4                               |  7.35   |           |          |   3          |
+| 1x Standard_NC80ads_H100_v5                               | 13.96   |           |          |   3          |
+| 1x Standard_NC96ads_A100_v4                               | 14.69   |           |          |   2          |
+| 1x Standard_NC96ads_A100_v4 + 1x Standard_NC48ads_A100_v4 | 22.04   |           |          |              |
+| 3x Standard_NC48ads_A100_v4                               | 22.05   |           |          |              |
+| 1x Standard_ND96asr_v4                                    | 27.2    |           |          |              |
+| 2x Standard_NC96ads_A100_v4                               | 29.38   |           |          |              |
+| 1x Standard_ND96amsr_A100_v4                              | 32.77   |           |          |              |
+| 3x Standard_NC80ads_H100_v5                               | 41.88   |           |          |              |
+| 1x Standard_ND96isr_H100_v5                               | 98.32   |           |          |              |
+
+
+bo767
+
+
+| ANF-ultra NFS                                             | $/hour  | Pages/sec | Pages /$ | Time slicing | 
+| --------------------------------------------------------- | ------- | --------- | -------- | ------------ |
+| 1x Standard_NC24ads_A100_v4                               |  3.67   |           |          |   6          |
+| 1x Standard_NC40ads_H100_v5                               |  6.98   | 9.52      | 4910     |   6          |
+| 1x Standard_NC48ads_A100_v4                               |  7.35   |           |          |   3          |
+| 1x Standard_NC80ads_H100_v5                               | 13.96   |           |          |   3          |
+| 1x Standard_NC96ads_A100_v4                               | 14.69   |           |          |   2          |
+| 1x Standard_NC96ads_A100_v4 + 1x Standard_NC48ads_A100_v4 | 22.04   |           |          |              |
+| 3x Standard_NC48ads_A100_v4                               | 22.05   |           |          |              |
+| 1x Standard_ND96asr_v4                                    | 27.2    |           |          |              |
+| 2x Standard_NC96ads_A100_v4                               | 29.38   |           |          |              |
+| 1x Standard_ND96amsr_A100_v4                              | 32.77   |           |          |              |
+| 3x Standard_NC80ads_H100_v5                               | 41.88   |           |          |              |
+| 1x Standard_ND96isr_H100_v5                               | 98.32   |           |          |              |
