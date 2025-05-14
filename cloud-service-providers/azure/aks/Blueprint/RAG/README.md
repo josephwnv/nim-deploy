@@ -88,7 +88,7 @@ rm ingestor-server-v2.0.0.tgz
 # nodeSelector: {}  # likely best to set this to `nvidia.com/gpu.present: "true"` depending on cluster setup
 # into
 # nodeSelector:
-#   nvidia.com/gpu.sharing-strategy: "notime-slicingne"
+#   nvidia.com/gpu.sharing-strategy: "time-slicing"
 ```
 #### for frontend
 ```
