@@ -1,6 +1,10 @@
-# Get Started With NVIDIA RAG Blueprint
+# Get Started With NVIDIA RAG Blueprint (v2.0)
 
-Official instructions document can be forund [here](https://github.com/NVIDIA-AI-Blueprints/rag/blob/main/docs/quickstart.md#deploy-with-helm-chart)
+This document suppliment [official instructions](https://github.com/NVIDIA-AI-Blueprints/rag/blob/main/docs/quickstart.md#deploy-with-helm-chart) with 3 enhancements.
+
+- explain how to upgrade nv-ingest version to latest version
+- explain how to use time slice to save 4 GPUs
+- explain how to use this Blueprint in WSL2 environment
 
 ## Architecture
 ![](diagram.jpg)
@@ -60,6 +64,11 @@ cd deploy/helm/
 helm dependency update rag-server/charts/ingestor-server
 helm dependency update rag-server
 ```
+### Update nv-ingest version (Optional)
+
+Current nv-ingest version is 25.3.0.  You can upgrade to 25.4.2 with the following steps.
+update rag-server/values.yaml, change nv-ingest version from 25.3.0 to 25.4.2 (line 181)
+
 ### Assign pods to proper nodepool
 
 #### for backend
@@ -130,6 +139,73 @@ kubectl port-forward -n rag service/rag-frontend 3000:3000 --address 0.0.0.0
 ```
 ![](GUI.jpg)
 
+### Enabling Observability with the chart 
+
+To enable tracing and view the Zipkin or Grafana UI, follow these steps:
+
+#### Enable OpenTelemetry Collector, Zipkin and Prometheus stack
+
+- Update the values.yaml file to enable the OpenTelemetry Collector and Zipkin:
+
+```
+env:
+# ... existing code ...
+APP_TRACING_ENABLED: "True"
+
+# ... existing code ...
+serviceMonitor:
+enabled: true
+opentelemetry-collector:
+enabled: true
+# ... existing code ...
+
+zipkin:
+enabled: true
+kube-prometheus-stack:
+enabled: true
+```
+- Deploy the Changes:
+Redeploy the Helm chart to apply these changes:
+```
+helm uninstall rag -n rag
+helm install rag -n rag rag-server/ \
+--set imagePullSecret.password=$NVIDIA_API_KEY \
+--set ngcApiSecret.password=$NVIDIA_API_KEY
+```
+#### Port-Forwarding to Access UIs
+- Zipkin UI:
+Run the following command to port-forward the Zipkin service to your local machine:
+```
+kubectl port-forward -n rag service/rag-zipkin 9411:9411 --address 0.0.0.0
+```
+- Grafana UI:
+run the following command to port-forward the Grafana service:
+```
+kubectl port-forward -n rag service/rag-grafana 3000:80 --address 0.0.0.0
+```
+Access the Grafana UI at http://localhost:3000 using the default credentials (admin/admin).
+#### Creating a Dashboard in Grafana
+- Upload JSON to Grafana:
+
+Navigate to the Grafana UI at http://localhost:3000.
+Log in with the default credentials (admin/admin).
+Go to the "Dashboards" section and click on "Import".
+Upload the JSON file located in the deploy/config directory.
+
+- Configure the Dashboard:
+
+After uploading, select the data source that the dashboard will use. Ensure that the data source is correctly configured to pull metrics from your Prometheus instance.
+
+- Save and View:
+
+Once the dashboard is configured, save it and start viewing your metrics and traces.
+
+### WSL2
+if you wsl,  find the ip of your wsl, then hit https://"ip of your wsl":3000 from your windows browser
+```
+josephw@JosephDesktop:~$ ip addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+172.19.164.145
+```
 ### Set up work pod for batch ingestion
 
 Detail instructions  can be forund in [NeMo Retriever Extraction](../../NemoRetrieverExtraction/README.md)
