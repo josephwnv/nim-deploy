@@ -129,3 +129,7 @@ helm install rag -n rag rag-server/ \
 kubectl port-forward -n rag service/rag-frontend 3000:3000 --address 0.0.0.0
 ```
 ![](GUI.jpg)
+
+### Set up work pod for batch ingestion
+
+Detail instructions  can be forund in [NeMo Retriever Extraction](../../NemoRetrieverExtraction/README.md)
