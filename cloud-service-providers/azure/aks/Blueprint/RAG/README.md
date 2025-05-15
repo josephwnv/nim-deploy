@@ -208,4 +208,43 @@ josephw@JosephDesktop:~$ ip addr show eth0 | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
 ```
 ### Set up work pod for batch ingestion
 
-Detail instructions  can be forund in [NeMo Retriever Extraction](../../NemoRetrieverExtraction/README.md)
+### Setup test pod
+create nv-ingest-test.yaml
+```
+kind: Pod
+apiVersion: v1
+metadata:
+  name: nv-ingest-test
+spec:
+  containers:
+  - image: ubuntu
+    name: nv-ingest-test
+    command:
+    - "/bin/sh"
+    - "-c"
+    - while true; do echo $(date) >> /mnt/azure/outfile; sleep 1; done
+    volumeMounts:
+    - name: disk01
+      mountPath: /mnt/azure
+  volumes:
+  - name: disk01
+    persistentVolumeClaim:
+      claimName: pvc-nfs
+```
+```
+kubectl exec -it nv-ingest-test --- bash
+apt-get update
+apt-get install python3-pip
+pip install nv-ingest-client --break-system-packages
+apt-get install python3-pypdf2
+# use follow command to find all ip and port needed
+kubectl get svc -n rag 
+
+python3 ingestion.py \
+    --nv_ingest_host HOST     \ # Host where nv-ingest-ms-runtime is running (default: localhost)
+    --nv_ingest_port PORT     \ # REST port for NV Ingest (default: 7670)
+    --milvus_uri URI          \ # Milvus URI for external ingestion (default: http://localhost:19530)
+    --minio_endpoint ENDPOINT \ # MinIO endpoint for external ingestion (default: localhost:9010)
+    --collection_name NAME    \ # Name of the collection (default: bo767_test)
+    --folder_path PATH        \ # Path to the data files (default: "/path/to/bo767/corpus/")
+```
