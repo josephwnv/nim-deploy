@@ -1,0 +1,6 @@
+$schema: https://azuremlschemas.azureedge.net/latest/kubernetesOnlineEndpoint.schema.json
+name: endpoint_name_placeholder
+auth_mode: key
+compute: azureml:kubernetes_name_placeholder  
+properties:
+    enforce_access_to_default_secret_stores: enabled  # default: disabled

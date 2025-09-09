@@ -1,0 +1,15 @@
+apiVersion: amlarc.azureml.com/v1alpha1
+kind: InstanceType
+metadata:
+  name: h100instancetypename
+spec:
+  nodeSelector:
+    node.kubernetes.io/instance-type: Standard_NC40ads_H100_v5
+  resources:
+    limits:
+      cpu: "4"
+      nvidia.com/gpu: 1
+      memory: "64Gi"
+    requests:
+      cpu: "2000m"
+      memory: "32Gi"

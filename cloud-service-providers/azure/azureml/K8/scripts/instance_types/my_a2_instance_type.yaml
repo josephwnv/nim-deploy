@@ -1,0 +1,15 @@
+apiVersion: amlarc.azureml.com/v1alpha1
+kind: InstanceType
+metadata:
+  name: a2instancetypename
+spec:
+  nodeSelector:
+    nvidia.com/gpu.product: NVIDIA-A2
+  resources:
+    limits:
+      cpu: "1"
+      nvidia.com/gpu: 1
+      memory: "8Gi"
+    requests:
+      cpu: "750m"
+      memory: "2Gi"
