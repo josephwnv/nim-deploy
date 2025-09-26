@@ -24,7 +24,7 @@ kubectl get nodes -o wide
 ```
 Verify node labels before time-slicing (Optional)
 ```
-kubectl get node minikube -o json | jq '.metadata.labels | to_entries | map(select(.key | startswith("nvidia.com/gpu"))) | from_entries'
+kubectl get node <node name> -o json | jq '.metadata.labels | to_entries | map(select(.key | startswith("nvidia.com/gpu"))) | from_entries'
 ```
 Create Configmap
 ```
@@ -207,6 +207,10 @@ kubectl exec -it nv-ingest-test --- bash
 apt-get update
 apt-get install python3-pip
 pip install nv-ingest-client --break-system-packages
+pip install pymilvus --break-system-packages
+pip install pymilvus[bulk_writer] --break-system-packages
+pip install pymilvus[model] --break-system-packages
+pip install tritonclient --break-system-packages
 ```
 Copy test data you want to test into pod
 ```
