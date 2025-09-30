@@ -1,6 +1,6 @@
 # Enable RDMA in AKS
 
-
+Due to resource limitation, this RDMA in AKS exercise is tested on Standard_ND96asr_v4 only.  Feel free to report and issue on other instance type.  We will continue testing other instance type when the resource is available.
 
 ## [Install AKSInfinibandSupport feature](https://learn.microsoft.com/en-us/azure/aks/use-amd-gpus)
 
@@ -60,6 +60,8 @@ cp config/examples/global_ops_user.cfg.hostdev_rdma_sriov global_ops_user.cfg
 
 ## update global_ops_user.cfg
 
+Mainly is to upload NETOP_NETLIST, The following value is for Standard_ND96asr_v4, not sure whether need to modify for other instance type. If not work, please follow Turn on firewall then ssh in work node section to figure out the correct values
+
 ```
 #
 # hostdev_rdma_sriov
@@ -88,6 +90,7 @@ cd ./netop-tools/ops
 
 ## Install GPU operator
 
+If you never install GPU operator before, Please follow this [link](https://docs.nvidia.com/datacenter/cloud-native/gpu-operator/latest/getting-started.html) to get more info.
 ```
 helm install --create-namespace --namespace nvidia-gpu-operator nvidia/gpu-operator  --set driver.rdma.enabled=true  --wait --generate-name
 ```
@@ -127,12 +130,24 @@ cd ~/netop-tools/rdmatest
 ### WITH GPU
 ```
 cd ~/netop-tools/rdmatest
+# manual select GPU
 ./gdrsrv.sh ib test1 --net net1 --ns default --gpu 0
+or
+# auto select GPU
+./gdrsrv.sh ib test1 --net net1 --ns default --gdr
+
 # from another terminal
+cd ~/netop-tools/rdmatest
+# manual select GPU
 ./gdrclt.sh ib test2 test1 --net net1 --ns default -- gpu 0
+or
+# auto select GPU
+./gdrclt.sh ib test2 test1 --net net1 --ns default -- gdr
+
 ```
 
-## Fix/Update cluster
+## Fix/Update/patch cluster
+
 if you need to fix global_ops_user.cfg
 
 ```
