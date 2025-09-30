@@ -1,85 +1,19 @@
 # Enable RDMA in AKS
-https://github.com/Azure/aks-rdma-infiniband/tree/main/tests
+
+
+
+## [Install AKSInfinibandSupport feature](https://learn.microsoft.com/en-us/azure/aks/use-amd-gpus)
+
+
+```
+az feature show --namespace Microsoft.ContainerService --name AKSInfinibandSupport
+az feature register --name AKSInfinibandSupport --namespace Microsoft.ContainerService
+```
 
 ## Create AKS 
 
-AKS currently doesn't support multi-interface pods when using the Azure CNI plugin for the cluster, you can use Bring your own CNI in AKS, this will allow you to install all your own “master” CNI and then configure Multus to add additional interfaces to your pods - [Bring your own Container Network Interface (CNI) plugin with Azure Kubernetes Service (AKS) - Azure Kubernetes Service | Microsoft Learn](https://learn.microsoft.com/en-us/azure/aks/use-byo-cni?tabs=azure-cli)
-
-https://docs.tigera.io/calico/latest/getting-started/kubernetes/managed-public-cloud/aks
-
-az aks create --name jwu-byocni --resource-group jwu-nvaie --ssh-key-value ~/.ssh/id_rsa.pub --enable-node-public-ip --location westus2 --network-plugin none
---pod-cidr 192.168.0.0/16 ??
-
-az aks create --resource-group jwu-nvaie --name jwu-byocni --location westus2 --ssh-key-value ~/.ssh/id_rsa.pub --os-sku Ubuntu --enable-oidc-issuer --enable-workload-identity --enable-managed-identity 
-        
-
-## The virtual network for the AKS cluster must allow outbound internet connectivity.
-
-## install CNI
-
-kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.30.3/manifests/operator-crds.yaml
-kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v3.30.3/manifests/tigera-operator.yaml
-
-
-```
-kubectl create -f - <<EOF
-kind: Installation
-apiVersion: operator.tigera.io/v1
-metadata:
-  name: default
-spec:
-  kubernetesProvider: AKS
-  cni:
-    type: Calico
-  calicoNetwork:
-    bgp: Disabled
-    ipPools:
-     - cidr: 192.168.0.0/16
-       encapsulation: VXLAN
----
-
-# This section configures the Calico API server.
-# For more information, see: https://docs.tigera.io/calico/latest/reference/installation/api#operator.tigera.io/v1.APIServer
-apiVersion: operator.tigera.io/v1
-kind: APIServer
-metadata:
-   name: default
-spec: {}
-
----
-
-# Configures the Calico Goldmane flow aggregator.
-apiVersion: operator.tigera.io/v1
-kind: Goldmane
-metadata:
-  name: default
-
----
-
-# Configures the Calico Whisker observability UI.
-apiVersion: operator.tigera.io/v1
-kind: Whisker
-metadata:
-  name: default
-EOF
-
-watch kubectl get pods -n calico-system
-```
-kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.30.3/manifests/custom-resources.yaml
-
-
-
-
-~/netop-tools/install$ ./ins-calico.sh
-
-iptables v1.8.7 (nf_tables): Couldn't load match `tcp':No such file or directory
-
-Try `iptables -h' or 'iptables --help' for more information.
-
-## Create GPU nodepool
-
-az feature show --namespace Microsoft.ContainerService --name AKSInfinibandSupport
-az feature register --name AKSInfinibandSupport --namespace Microsoft.ContainerService
+For proper region and VM size, Please check [product availability by region](https://azure.microsoft.com/en-us/explore/global-infrastructure/products-by-region/table)
+Following is just for reference.  may not up to date.
 
 |                           | CENTRAL US | EAST US | EAST US 2 | NORTH CENTRAL US | SOUTH CENTRAL US | WEST US | WEST US 2 | WEST US 3 |
 |---------------------------|------------|---------|-----------|------------------|------------------|---------|-----------|-----------|
@@ -88,12 +22,31 @@ az feature register --name AKSInfinibandSupport --namespace Microsoft.ContainerS
 | Standard_ND96isr_H100_v5  |       X    |   X     |     X     |                  |                  |     X   |           |           |
 | Standard_ND96isr_H200_v5  |            |         |     X     |         X        |                  |         |           |       X   |
 
-az aks nodepool add --resource-group jwu-nvaie --cluster-name jwu-byocni --name gpunp --node-count 2 --skip-gpu-driver-install --node-vm-size Standard_NC40ads_H100_v5 --node-osdisk-size 512 --max-pods 110 --enable-node-public-ip --node-osdisk-type Managed --ssh-key-value ~/.ssh/id_rsa.pub
-
-## Install GPU operator
+```
+export AZURE_RESOURCE_GROUP="<Your resource group>"
+export AZURE_REGION="<You region>"
+export NODE_POOL_VM_SIZE="<Your VM Size>"
+export CLUSTER_NAME="<Your Cluster Name>"
+```
 
 ```
-helm install --create-namespace --namespace nvidia-gpu-operator nvidia/gpu-operator  --set driver.rdma.enabled=true  --wait --generate-name
+az aks create \
+        --resource-group "${AZURE_RESOURCE_GROUP}" \
+        --name "${CLUSTER_NAME}" \
+        --enable-oidc-issuer \
+        --enable-workload-identity \
+        --enable-managed-identity \
+        --node-count 1 \
+        --location "${AZURE_REGION}" \
+        --ssh-key-value ~/.ssh/id_rsa.pub \
+        --enable-node-public-ip \
+        --os-sku Ubuntu
+```
+
+## Create GPU node pool 
+
+```
+az aks nodepool add --resource-group "${AZURE_RESOURCE_GROUP}" --cluster-name "${CLUSTER_NAME}" --name gpunp --node-count 2 --skip-gpu-driver-install --node-vm-size "${NODE_POOL_VM_SIZE}" --node-osdisk-size 512 --max-pods 110 --enable-node-public-ip --node-osdisk-type Managed
 ```
 
 ## Clone netop-tools
@@ -104,48 +57,101 @@ cd netop-tools
 source NETOP_ROOT_DIR.sh
 cp config/examples/global_ops_user.cfg.hostdev_rdma_sriov global_ops_user.cfg
 ```
+
+## update global_ops_user.cfg
+
+```
+#
+# hostdev_rdma_sriov
+#
+NFD_ENABLE=false
+OFED_ENABLE=true
+CREATE_CONFIG_ONLY=0
+USECASE="hostdev_rdma_sriov"
+MTU_DEFAULT="9000"
+NUM_GPUS=8
+DEVICE_TYPES=( "connectx-6-ex" )
+NETOP_APP_NAMESPACES=( "default" )
+NETOP_COMBINED=true
+# for maximum E/W RDMA performance each NIC port gets defined as a network
+# example device PCI id for connectx-7 = 1021 # interpreted by config as HEX
+# devices index, {device PCI id},,VF devices (PCI BDF VFs | netdevice vf expression)
+NETOP_NETLIST=( a,,,0101:00:00.0 b,,,0102:00:00.0 c,,,0103:00:00.0 d,,,0104:00:00.0 e,,,0105:00:00.0 f,,,0106:00:00.0 g,,,0107:00:00.0 h,,,0108:00:00.0 )
+```
+
 ## label worker
 
 ```
 cd ./netop-tools/ops
 ./labelworker.sh {nodename}
 ```
-## pull chart
+
+## Install GPU operator
+
+```
+helm install --create-namespace --namespace nvidia-gpu-operator nvidia/gpu-operator  --set driver.rdma.enabled=true  --wait --generate-name
+```
+
+## pull chart and install network operator
+Don't wait for GPU operator installation complete.  Just continue...
 ```
 cd ../install
 ./ins-netop-chart.sh
 ./ins-network-operator.sh
 ```
-or if network operation exists
+Now wait for both operator installation complete. check with ..
 ```
-cd ../upgrade
-./upgrade-network-operator.sh
-```
-
-## edit global_ops_user.cfg
-open ssh port to login
-```
-ssh -i ~/.ssh/id_rsa azureuser@<public ip of gpu node>
-lspci
-ls -la /sys/class/net/ |grep -i d5f6:00:02.0
+watch kubectl get pod -A
 ```
 
-## mk-config.sh only for update
-
-```
-$NETOP_ROOT_DIR/ops/mk-config.sh
-```
-##
-```
-cd uc
-kubectl apply -f NicClusterPolicy.yaml
-```
-
-##
-
+## Create test pod
 ```
 cd $NETOP_ROOT_DIR/uc
 $NETOP_ROOT_DIR/ops/mk-app.sh test1 default
 $NETOP_ROOT_DIR/ops/mk-app.sh test2 default
+cd apps
+kubectl apply -f test1.yaml
+kubectl apply -f test1.yaml
 ```
 
+## RDMA test
+
+### NO GPU
+```
+cd ~/netop-tools/rdmatest
+./gdrsrv.sh ib test1 --net net1 --ns default
+# from another terminal
+./gdrclt.sh ib test2 test1 --net net1 --ns default
+```
+
+### WITH GPU
+```
+cd ~/netop-tools/rdmatest
+./gdrsrv.sh ib test1 --net net1 --ns default --gpu 0
+# from another terminal
+./gdrclt.sh ib test2 test1 --net net1 --ns default -- gpu 0
+```
+
+## Fix/Update cluster
+if you need to fix global_ops_user.cfg
+
+```
+# after fixing global_ops_user.cfg
+
+$NETOP_ROOT_DIR/ops/mk-config.sh
+kubectl apply -f NicClusterPolicy.yaml
+kubectl apply -f ippool.yaml
+kubectl apply -f network.yaml
+```
+
+## Turn on firewall then ssh in work node
+
+```
+kubectl get node -o wide
+ssh -i ~/.ssh/id_rsa azureuser@<public ip of gpu node>
+lspci
+...
+```
+
+## Reference
+- https://github.com/Azure/aks-rdma-infiniband/tree/main/tests
