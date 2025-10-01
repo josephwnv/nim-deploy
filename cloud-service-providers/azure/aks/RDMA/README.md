@@ -43,6 +43,8 @@ az aks create \
         --os-sku Ubuntu
 ```
 
+PS:  --enable-node-public-ip --ssh-key-value ~/.ssh/id_rsa.pub are for debug purpose only.  You don't need this if you are using Standard_ND96asr_v4.  But it is a good idea to have those two flag if you are using the instance we havent test.  Debug features can help you figure out the correct parameter to make it work.  Detail explains in later section.
+
 ## Create GPU node pool 
 
 ```
@@ -114,10 +116,10 @@ $NETOP_ROOT_DIR/ops/mk-app.sh test1 default
 $NETOP_ROOT_DIR/ops/mk-app.sh test2 default
 cd apps
 kubectl apply -f test1.yaml
-kubectl apply -f test1.yaml
+kubectl apply -f test2.yaml
 ```
 
-## RDMA test
+## RDMA test - hostdevsriov passed into the VM
 
 ### NO GPU
 ```
@@ -146,6 +148,42 @@ or
 
 ```
 
+## RDMA test - ipoib
+
+This test requirent device name on each work node are consistent which is not te case in Standard_ND96asr_v4.  Make sure your nodegroop meet this requirement before moving forward.
+
+```
+cp config/examples/global_ops_user.ipoib_rdma_shared_device global_ops_user.cfg
+# edit global_ops_user.cfg
+./setuc.sh
+cd uc
+$NETOP_ROOT_DIR/ops/mk-config.sh
+kubectl apply -f NicClusterPolicy.yaml,ippool.yaml,network.yaml
+# restart network operator pod as needed
+$NETOP_ROOT_DIR/ops/mk-apps.sh test1
+$NETOP_ROOT_DIR/ops/mk-apps.sh test2
+cd apps
+kubectl apply -f test1.yaml,test2.yaml
+```
+
+## RDMA test - nv-ipam
+
+This test requirent device name on each work node are consistent which is not te case in Standard_ND96asr_v4.  Make sure your nodegroop meet this requirement before moving forward.
+
+```
+cp config/examples/global_ops_user.macvlan_rdma_shared_device global_ops_user.cfg
+# edit global_ops_user.cfg
+./setuc.sh
+cd uc
+$NETOP_ROOT_DIR/ops/mk-config.sh
+kubectl apply -f NicClusterPolicy.yaml,ippool.yaml,network.yaml
+# restart network operator pod as needed
+$NETOP_ROOT_DIR/ops/mk-apps.sh test1
+$NETOP_ROOT_DIR/ops/mk-apps.sh test2
+cd apps
+kubectl apply -f test1.yaml,test2.yaml
+```
+
 ## Fix/Update/patch cluster
 
 if you need to fix global_ops_user.cfg
@@ -165,7 +203,14 @@ kubectl apply -f network.yaml
 kubectl get node -o wide
 ssh -i ~/.ssh/id_rsa azureuser@<public ip of gpu node>
 lspci
+ip -br a|grep ib | cut -d' ' -f1
 ...
+```
+
+## delete network resouces
+
+```
+./delete_capacity.sh <node name> <network resource>
 ```
 
 ## Reference
