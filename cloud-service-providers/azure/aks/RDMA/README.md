@@ -60,6 +60,13 @@ source NETOP_ROOT_DIR.sh
 cp config/examples/global_ops_user.cfg.hostdev_rdma_sriov global_ops_user.cfg
 ```
 
+## label worker
+
+```
+cd ./netop-tools/ops
+./labelworker.sh {nodename}
+```
+
 ## update global_ops_user.cfg -- hostdevsriov 
 
 Mainly is to upload NETOP_NETLIST, The following value is for Standard_ND96asr_v4, not sure whether need to modify for other instance type. If not work, please follow Turn on firewall then ssh in work node section to figure out the correct values
@@ -81,13 +88,6 @@ NETOP_COMBINED=true
 # example device PCI id for connectx-7 = 1021 # interpreted by config as HEX
 # devices index, {device PCI id},,VF devices (PCI BDF VFs | netdevice vf expression)
 NETOP_NETLIST=( a,,,0101:00:00.0 b,,,0102:00:00.0 c,,,0103:00:00.0 d,,,0104:00:00.0 e,,,0105:00:00.0 f,,,0106:00:00.0 g,,,0107:00:00.0 h,,,0108:00:00.0 )
-```
-
-## label worker
-
-```
-cd ./netop-tools/ops
-./labelworker.sh {nodename}
 ```
 
 ## Install GPU operator
@@ -119,9 +119,7 @@ kubectl apply -f test1.yaml
 kubectl apply -f test2.yaml
 ```
 
-
-
-## RDMA test - ipoib
+## RDMA test - ip over ib
 
 This test requirent device name on each work node are consistent which is not te case in Standard_ND96asr_v4.  Make sure your nodegroop meet this requirement before moving forward.
 
@@ -158,7 +156,7 @@ LABEL="mlnx_ofed_name_end"
 ```
 sudo shutdown -r now
 ```
-### 
+### setup
 ```
 cp config/examples/global_ops_user.ipoib_rdma_shared_device global_ops_user.cfg
 # edit global_ops_user.cfg
@@ -175,7 +173,9 @@ kubectl apply -f test1.yaml,test2.yaml
 
 ## RDMA test - Roce (Ethernet)
 
-This test requirent device name on each work node are consistent which is not te case in Standard_ND96asr_v4.  Make sure your nodegroop meet this requirement before moving forward.
+This test requirent device name on each work node are consistent which is not te case in Standard_ND96asr_v4.  
+This test requirent device in ethernet mode not ib mode.
+Make sure your nodegroop meet this requirement before moving forward.
 
 ```
 cp config/examples/global_ops_user.macvlan_rdma_shared_device global_ops_user.cfg
