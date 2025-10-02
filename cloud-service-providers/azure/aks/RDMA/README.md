@@ -60,7 +60,7 @@ source NETOP_ROOT_DIR.sh
 cp config/examples/global_ops_user.cfg.hostdev_rdma_sriov global_ops_user.cfg
 ```
 
-## update global_ops_user.cfg
+## update global_ops_user.cfg -- hostdevsriov 
 
 Mainly is to upload NETOP_NETLIST, The following value is for Standard_ND96asr_v4, not sure whether need to modify for other instance type. If not work, please follow Turn on firewall then ssh in work node section to figure out the correct values
 
@@ -119,7 +119,79 @@ kubectl apply -f test1.yaml
 kubectl apply -f test2.yaml
 ```
 
-## RDMA test - hostdevsriov passed into the VM
+
+
+## RDMA test - ipoib
+
+This test requirent device name on each work node are consistent which is not te case in Standard_ND96asr_v4.  Make sure your nodegroop meet this requirement before moving forward.
+
+### Fixing the device name
+
+This is a hack before AKS fix it.
+For each GPU work node, do the following
+
+```
+ssh -i ~/.ssh/id_rsa azureuser@<public ip of gpu node>
+vi /etc/udev/rules.d/78-mlnx-ib-names.rules
+```
+
+```
+ACTION!="add", GOTO="mlnx_ofed_name_end"
+SUBSYSTEM!="net", GOTO="mlnx_ofed_name_end"
+
+# Rename physical interfaces (first case) of virtual functions (second case).
+# Example names:
+# enp8s0f0np0 -> enp8s0f0
+# enp8s0f0np1v12 -> enp8s0f0v12
+
+DRIVERS=="mlx5_core", ENV{ID_NET_NAME_PATH}!="", \
+PROGRAM="/bin/sh -c 'echo $env{ID_NET_NAME_PATH} | sed -r -e s/p[0-9]s[0-9]$//'", \
+        ENV{ID_NET_NAME_PATH}="$result"
+
+DRIVERS=="mlx5_core", ENV{ID_NET_NAME_SLOT}!="", \
+PROGRAM="/bin/sh -c 'echo $env{ID_NET_NAME_SLOT} | sed -r -e s/s[0-9][0-9][0-9][0-9][0-9][0-9]$//'", \
+        ENV{ID_NET_NAME_SLOT}="$result"
+
+LABEL="mlnx_ofed_name_end"
+```
+
+```
+sudo shutdown -r now
+```
+### 
+```
+cp config/examples/global_ops_user.ipoib_rdma_shared_device global_ops_user.cfg
+# edit global_ops_user.cfg
+./setuc.sh
+cd uc
+$NETOP_ROOT_DIR/ops/mk-config.sh
+kubectl apply -f NicClusterPolicy.yaml,ippool.yaml,network.yaml
+# restart network operator pod as needed
+$NETOP_ROOT_DIR/ops/mk-apps.sh test1
+$NETOP_ROOT_DIR/ops/mk-apps.sh test2
+cd apps
+kubectl apply -f test1.yaml,test2.yaml
+```
+
+## RDMA test - Roce (Ethernet)
+
+This test requirent device name on each work node are consistent which is not te case in Standard_ND96asr_v4.  Make sure your nodegroop meet this requirement before moving forward.
+
+```
+cp config/examples/global_ops_user.macvlan_rdma_shared_device global_ops_user.cfg
+# edit global_ops_user.cfg
+./setuc.sh
+cd uc
+$NETOP_ROOT_DIR/ops/mk-config.sh
+kubectl apply -f NicClusterPolicy.yaml,ippool.yaml,network.yaml
+# restart network operator pod as needed
+$NETOP_ROOT_DIR/ops/mk-apps.sh test1
+$NETOP_ROOT_DIR/ops/mk-apps.sh test2
+cd apps
+kubectl apply -f test1.yaml,test2.yaml
+```
+
+## RDMA test 
 
 ### NO GPU
 ```
@@ -141,47 +213,10 @@ or
 # from another terminal
 cd ~/netop-tools/rdmatest
 # manual select GPU
-./gdrclt.sh ib test2 test1 --net net1 --ns default -- gpu 0
+./gdrclt.sh ib test2 test1 --net net1 --ns default --gpu 0
 or
 # auto select GPU
-./gdrclt.sh ib test2 test1 --net net1 --ns default -- gdr
-
-```
-
-## RDMA test - ipoib
-
-This test requirent device name on each work node are consistent which is not te case in Standard_ND96asr_v4.  Make sure your nodegroop meet this requirement before moving forward.
-
-```
-cp config/examples/global_ops_user.ipoib_rdma_shared_device global_ops_user.cfg
-# edit global_ops_user.cfg
-./setuc.sh
-cd uc
-$NETOP_ROOT_DIR/ops/mk-config.sh
-kubectl apply -f NicClusterPolicy.yaml,ippool.yaml,network.yaml
-# restart network operator pod as needed
-$NETOP_ROOT_DIR/ops/mk-apps.sh test1
-$NETOP_ROOT_DIR/ops/mk-apps.sh test2
-cd apps
-kubectl apply -f test1.yaml,test2.yaml
-```
-
-## RDMA test - nv-ipam
-
-This test requirent device name on each work node are consistent which is not te case in Standard_ND96asr_v4.  Make sure your nodegroop meet this requirement before moving forward.
-
-```
-cp config/examples/global_ops_user.macvlan_rdma_shared_device global_ops_user.cfg
-# edit global_ops_user.cfg
-./setuc.sh
-cd uc
-$NETOP_ROOT_DIR/ops/mk-config.sh
-kubectl apply -f NicClusterPolicy.yaml,ippool.yaml,network.yaml
-# restart network operator pod as needed
-$NETOP_ROOT_DIR/ops/mk-apps.sh test1
-$NETOP_ROOT_DIR/ops/mk-apps.sh test2
-cd apps
-kubectl apply -f test1.yaml,test2.yaml
+./gdrclt.sh ib test2 test1 --net net1 --ns default --gdr
 ```
 
 ## Fix/Update/patch cluster
@@ -204,6 +239,13 @@ kubectl get node -o wide
 ssh -i ~/.ssh/id_rsa azureuser@<public ip of gpu node>
 lspci
 ip -br a|grep ib | cut -d' ' -f1
+
+# find devices
+find /sys -name ibP\*
+udevadm info <full device path>
+
+# Apply udev rules
+sudo udevadm control --reload-rules && sudo udevadm trigger
 ...
 ```
 
