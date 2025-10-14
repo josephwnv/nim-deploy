@@ -15,37 +15,38 @@ helm repo update
 helm install nginx-ingress ingress-nginx/ingress-nginx --namespace nginx-ingress --create-namespace
     --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=healthz
 ```
-Using the Azure Portal:
-Sign in to the Azure portal.
-In the search box at the top, type "Load balancer" and select Load balancers from the search results.
-Select your specific load balancer: from the list.
-In the load balancer's settings menu, under Settings, select Health probes.
-Select the existing health probe: you want to modify, or select + Add to create a new one.
-In the "Add health probe" or "Edit health probe" pane, locate the Path field. This is where you can view or change the URI used for the health probe request.
-Enter or modify the desired URI: (e.g., /, /healthz, /api/health).
-Select Add or Save: to apply the changes.
+### Using the Azure Portal:
+- Sign in to the Azure portal.
+- In the search box at the top, type "Load balancer" and select Load balancers from the search results.
+- Select your specific load balancer: from the list.
+- In the load balancer's settings menu, under Settings, select Health probes.
+- Select the existing health probe: you want to modify, or select + Add to create a new one.
+- In the "Add health probe" or "Edit health probe" pane, locate the Path field. This is where you can view or change the URI used for the health probe request.
+- Enter or modify the desired URI: /healthz.
+- Select Add or Save: to apply the changes.
 
-# find the public IP
+# Find the public IP
 ```
 kubectl get svc -A
+
 ```
-# find the public IP name 
-az network public-ip list -g mc_jwu-rdma-test_jwu-ib-aks-cluster_eastus --query "[?ipAddress=='4.246.238.138'].name" -o tsv
+# Find the public IP name 
+az network public-ip list -g mc_<resource group>_<cluster name>_<region> --query "[?ipAddress=='<public ip of load balancer>'].name" -o tsv
 
 # Add DNS Label
 ```
-az network public-ip update --dns-name alxaksingress -g mc_jwu-rdma-test_jwu-ib-aks-cluster_eastus -n kubernetes-a570c7c60bf3c411ba5dbd794ad88a33 --allocation-method Static
-az network public-ip show   --resource-group mc_jwu-rdma-test_jwu-ib-aks-cluster_eastus   --name kubernetes-a0292aee14dd64b729ca8253dbb52a5c
+az network public-ip update --dns-name <prefix> -g mc_<resource group>_<cluster name>_<region> -n <public ip name> --allocation-method Static
+az network public-ip show   --resource-group mc_<resource group>_<cluster name>_<region>   --name <public ip name>
 ```
 ## Create a Cert
 
 ```
-openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes -keyout alxaksingress.eastus.cloudapp.azure.com.key -out alxaksingress.eastus.cloudapp.azure.com.crt -subj "/CN=alxaksingress.eastus.cloudapp.azure.com" -addext "subjectAltName=DNS:alxaksingress.eastus.cloudapp.azure.com,DNS:*.alxaksingress.eastus.cloudapp.azure.com,IP:4.246.238.138" 
+openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes -keyout <prefix>.<region>.cloudapp.azure.com.key -out <prefix>.<region>.cloudapp.azure.com.crt -subj "/CN=<prefix>.<region>.cloudapp.azure.com" -addext "subjectAltName=DNS:<prefix>.<region>.cloudapp.azure.com,DNS:*.<prefix>.<region>.cloudapp.azure.com,IP:<public ip of load balancer>" 
 ```
 
 ## Create a K8 secret for TLS
   ```
-kubectl create secret tls runai-backend-tls -n runai-backend --cert=alxaksingress.eastus.cloudapp.azure.com.crt --key=alxaksingress.eastus.cloudapp.azure.com.key
+kubectl create secret tls runai-backend-tls -n runai-backend --cert=<prefix>.<region>.cloudapp.azure.com.crt --key=<prefix>.<region>.cloudapp.azure.com.key
   ```
 
 ##
@@ -61,16 +62,16 @@ kubectl create secret docker-registry runai-reg-creds  \
 ```
 helm repo add runai-backend https://runai.jfrog.io/artifactory/cp-charts-prod
 helm repo update
-helm upgrade -i runai-backend -n runai-backend runai-backend/control-plane --set global.domain=alxaksingress.eastus.cloudapp.azure.com
+helm upgrade -i runai-backend -n runai-backend runai-backend/control-plane --set global.domain=<prefix>.<region>.cloudapp.azure.com
 ```
 
 ## Login
 
-https://lxaksingress.eastus.cloudapp.azure.com
-default user is: test@run.ai and default password is Abcd!234
-![](./images/login.jpg)
+- https://<prefix>.<region>.cloudapp.azure.com
+- default user is: test@run.ai and default password is Abcd!234
+- ![](./images/login.jpg)
 
-![](./images/install.jpg)
+- ![](./images/install.jpg)
 
 # Reference
 
