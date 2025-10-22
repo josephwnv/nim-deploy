@@ -35,7 +35,8 @@ spec:
               args:
                 - >
                   mpirun --allow-run-as-root
-                  -np 2
+                  -np 16
+                  -n 8
                   -x NCCL_DEBUG=INFO
                   -bind-to none -map-by slot
                   -mca pml ob1
@@ -44,7 +45,7 @@ spec:
                   -mca oob_tcp_if_include 10.244.0.0/16
                   -mca routed direct
                   -mca plm_rsh_args "-p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i /root/.ssh/id_rsa"
-                  all_reduce_perf_mpi -b 16 -e 8G -f 2 -g 4
+                  all_reduce_perf_mpi -b 16 -e 8G -f 2 -g 1
 
     Worker:
       replicas: 2
@@ -71,16 +72,16 @@ spec:
                   ssh-keygen -A &&
                   exec /usr/sbin/sshd -De -p 2222
               resources:
-#                requests:
-#                  nvidia.com/gpu: 1
-#                  rdma/rdma_shared_device_a: '1'
-#                  rdma/rdma_shared_device_b: '1'
-#                  rdma/rdma_shared_device_c: '1'
-#                  rdma/rdma_shared_device_d: '1'
-#                  rdma/rdma_shared_device_e: '1'
-#                  rdma/rdma_shared_device_f: '1'
-#                  rdma/rdma_shared_device_g: '1'
-#                  rdma/rdma_shared_device_h: '1'
+                requests:
+                  nvidia.com/gpu: 8
+                  rdma/rdma_shared_device_a: '1'
+                  rdma/rdma_shared_device_b: '1'
+                  rdma/rdma_shared_device_c: '1'
+                  rdma/rdma_shared_device_d: '1'
+                  rdma/rdma_shared_device_e: '1'
+                  rdma/rdma_shared_device_f: '1'
+                  rdma/rdma_shared_device_g: '1'
+                  rdma/rdma_shared_device_h: '1'
                 limits:
                   nvidia.com/gpu: 8
                   rdma/rdma_shared_device_a: '1'

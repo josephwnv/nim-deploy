@@ -1,0 +1,82 @@
+az aks show --name <cluster name> --resource-group <resource group> --query identity.type --output tsv  
+## Update an existing AKS cluster to use a system-assigned managed identity
+az aks update --resource-group <resource group> --name <cluster name> --enable-managed-identity
+az aks nodepool upgrade --resource-group <resource group> --cluster-name <cluster name>r --name mynodepool --node-image-only
+## Update an existing cluster to use a user-assigned managed identity
+az aks update --resource-group <resource group> --name <cluster name> --enable-managed-identity --assign-identity $RESOURCE_ID
+
+# --enable-app-routing 
+# ```
+# az aks approuting enable --resource-group <resource group> --name <cluster name>
+# az aks show --resource-group <resource group> --name <cluster name> --query "addonProfiles.approuting.enabled" -o tsv
+# ```
+# az aks approuting disable --resource-group <resource group> --name <cluster name>
+## NO Need to Create a Public IP with a DNS label  
+# ```
+# az network public-ip create \
+#   --resource-group <resource group> \
+#   --name jwuRunaiPublicIP \
+#   --dns-name myaksingress \
+#   --allocation-method Static \
+#   --sku Standard
+# ```
+# ```
+# az network public-ip show   --resource-group <resource group>   --name jwuRunaiPublicIP
+# ```
+
+## Assign Permission
+
+# From Azure portal, Give AKS full control of Public IP
+# helm install nginx-ingress ingress-nginx/ingress-nginx \
+#        --namespace nginx-ingress \
+#        --set controller.service.loadBalancerIP=13.92.190.19 \
+#        --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-dns-label-name"=myaksingress \
+#       --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-resource-group"=mc_<resource group>_<cluster name>_<region>
+# ```
+
+kubectl -n nginx-ingress create deployment nginx-sv-deploy --replicas=2 --image=nginx:1.22 --dry-run=client -o yaml > nginx-sv-deploy.yaml
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-sv-service
+  namespace: nginx-ingress
+spec:
+  selector:
+    app: nginx-sv-deploy
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80 
+    protocol: TCP
+  type: LoadBalancer
+```
+kubectl create ns nginx-ingress
+kubectl apply -f  service.yaml
+kubectl apply -f nginx-sv-deploy.yaml
+
+## Create the Ingress
+```
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: runai-backend-frontend
+  namespace: runai-backend
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  rules:
+  - http:
+      paths:
+      - backend:
+          service:
+            name: runai-backend-frontend
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+```
+
+```
+kubectl apply -f ingress.yaml -n runai-backend
+```
