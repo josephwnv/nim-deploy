@@ -14,7 +14,34 @@ helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
 helm repo update
 helm install nginx-ingress ingress-nginx/ingress-nginx --namespace nginx-ingress --create-namespace --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=healthz
 ```
+### For Azure Local
+```
+    az network public-ip create \
+      --resource-group <resource-group-name> \
+      --name <public-ip-name> \
+      --allocation-method Static \
+      --sku Standard \
+      --zone 1 # Optional: For zonal redundancy
+      
+kubectl edit svc -n nginx-ingress    nginx-ingress-ingress-nginx-controller
+...
+    metadata:
+      name: my-app-service
+      annotations:
+        service.beta.kubernetes.io/azure-load-balancer-resource-group: <resource-group-name> # If Public IP is in a different resource group
+        service.beta.kubernetes.io/azure-load-balancer-public-ip: <public-ip-name> # Name of the pre-existing Public IP
 
+spec:
+  allocateLoadBalancerNodePorts: true
+  clusterIP: 10.111.66.236
+  clusterIPs:
+  - 10.111.66.236
+  externalIPs:
+  - 192.168.10.202
+  externalTrafficPolicy: Cluster
+  internalTrafficPolicy: Cluster
+...
+```
 # Find the public IP
 ```
 kubectl get svc -A
@@ -108,6 +135,10 @@ kubectl create secret tls runai-cluster-domain-tls-secret -n runai \
 
 ## Testing
 
+```
+kubectl apply -f corednsms.yaml
+kubectl --namespace kube-system rollout restart deployment coredns
+```
 
 ### NCCL-test
 
@@ -135,7 +166,7 @@ kubectl --namespace kourier-system get service kourier
 kubectl patch configmap/config-domain \
       --namespace knative-serving \
       --type merge \
-      --patch '{"data":{"jwu-netapp2.westus2.cloudapp.azure.com":""}}'
+      --patch '{"data":{"k8.ignite.net":""}}'
 
 kubectl patch configmap/config-autoscaler \
   --namespace knative-serving \
@@ -147,6 +178,38 @@ kubectl patch configmap/config-features \
   --patch '{"data":{"kubernetes.podspec-schedulername":"enabled","kubernetes.podspec-nodeselector": "enabled","kubernetes.podspec-affinity":"enabled","kubernetes.podspec-tolerations":"enabled","kubernetes.podspec-volumes-emptydir":"enabled","kubernetes.podspec-securitycontext":"enabled","kubernetes.containerspec-addcapabilities":"enabled","kubernetes.podspec-persistent-volume-claim":"enabled","kubernetes.podspec-persistent-volume-write":"enabled","multi-container":"enabled","kubernetes.podspec-init-containers":"enabled","kubernetes.podspec-fieldref":"enabled"}}'
 
 ## Enabling Host-Based Routing
+
+### Create a DNS Zone for custom Domain
+az network dns zone create -g jwu-nvaie -n jwu-netapp2.westus2.cloudapp.azure.com
+
+### Assign Variables
+tenantid=$(az account show --subscription "NV-WWFO" --query tenantId --output tsv)
+subscriptionid=$(az account show --query id -o tsv)
+UserClientId=$(az aks show --name jwu-netapp2 --resource-group jwu-nvaie --query identityProfile.kubeletidentity.clientId -o tsv)
+DNSID=$(az network dns zone show --name jwu-netapp2.westus2.cloudapp.azure.com --resource-group jwu-nvaie --query id -o tsv)
+### Assign managed identity of cluster’s node pools DNS Zone Contributor rights on to Custom Domain DNS zone.
+az role assignment create --assignee $UserClientId --role 'DNS Zone Contributor' --scope $DNSID
+
+### Add the Helm repository
+# helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo add external-dns https://kubernetes-sigs.github.io/external-dns/
+helm repo update
+
+### Use Helm to deploy an External DNS
+### https://kubernetes-sigs.github.io/external-dns/latest/docs/tutorials/azure/#internal-load-balancer
+
+kubectl create secret generic azure-config-file --namespace "nginx-ingress" --from-file /local/path/to/azure.json
+kubectl apply -n nginx-ingress -f external-dns.yaml 
+
+kubectl create secret generic azure-config-file --namespace "default" --from-file /local/path/to/azure.json
+helm upgrade --install external-dns external-dns/external-dns --version 1.17.0 --namespace nginx-ingress --set provider=azure --set txtOwnerId=jwu-netapp2 --set policy=sync --set azure.resourceGroup=jwu-nvaie --set azure.tenantId=$tenantid --set azure.subscriptionId=$subscriptionid --set azure.useManagedIdentityExtension=true --set azure.userAssignedIdentityID=$UserClientId
+
+helm install external-dns bitnami/external-dns --namespace nginx-ingress --set provider=azure --set txtOwnerId=jwu-netapp2 --set policy=sync --set azure.resourceGroup=jwu-nvaie --set azure.tenantId=$tenantid --set azure.subscriptionId=$subscriptionid --set azure.useManagedIdentityExtension=true --set azure.userAssignedIdentityID=$UserClientId
+
+
+
+
+
 openssl req -x509 -newkey rsa:4096 -sha256 -days 365 -nodes -keyout <prefix>.<region>.cloudapp.azure.com.key -out <prefix>.<region>.cloudapp.azure.com.crt -subj "/CN=<prefix>.<region>.cloudapp.azure.com" -addext "subjectAltName=DNS:<prefix>.<region>.cloudapp.azure.com,DNS:*.<prefix>.<region>.cloudapp.azure.com,IP:<public ip of load balancer>" 
 
 kubectl create secret tls runai-cluster-domain-star-tls-secret -n runai \    
@@ -173,6 +236,42 @@ kubectl patch RunaiConfig runai -n runai --type="merge" \
     -p '{"spec":{"global":{"subdomainSupport": true}}}' 
 
 kubectl get ksvc -A
+
+
+
+
+invoke_url='http://nim.runai-jwu-test.jwu-netapp2.westus2.cloudapp.azure.com/v1/chat/completions'
+
+authorization_header='Authorization: Bearer $API_KEY_REQUIRED_IF_EXECUTING_OUTSIDE_NGC'
+accept_header='Accept: application/json'
+content_type_header='Content-Type: application/json'
+
+data=$'{
+  "model": "meta/llama-3.1-8b-instruct",
+  "messages": [
+    {
+      "role": "user",
+      "content": ""
+    }
+  ],
+  "temperature": 0.2,
+  "top_p": 0.7,
+  "frequency_penalty": 0,
+  "presence_penalty": 0,
+  "max_tokens": 1024,
+  "stream": true
+}'
+
+response=$(curl --silent -i -w "\n%{http_code}" --request POST \
+  --url "$invoke_url" \
+  --header "$authorization_header" \
+  --header "$accept_header" \
+  --header "$content_type_header" \
+  --data "$data"
+)
+
+echo "$response"
+
 # Reference
 
 https://run-ai-docs.nvidia.com/self-hosted/getting-started/installation/cp-system-requirements
