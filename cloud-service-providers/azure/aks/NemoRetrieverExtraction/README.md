@@ -160,7 +160,7 @@ helm repo add baidu-nim https://helm.ngc.nvidia.com/nim/baidu --username='$oauth
 helm upgrade \
     --install \
     nv-ingest \
-    https://helm.ngc.nvidia.com/nvidia/nemo-microservices/charts/nv-ingest-25.3.0.tgz \
+    https://helm.ngc.nvidia.com/nvidia/nemo-microservices/charts/nv-ingest-25.9.0.tgz \
     -n ${NAMESPACE} \
     --username '$oauthtoken' \
     --password "${NGC_API_KEY}" \
@@ -168,8 +168,36 @@ helm upgrade \
     --set ngcImagePullSecret.password="${NGC_API_KEY}" \
     --set ngcApiSecret.create=true \
     --set ngcApiSecret.password="${NGC_API_KEY}" \
+    --set paddleocr-nim.deployed=false \
+    --set nemoretriever-ocr.deployed=true \
+    --set envVars.OCR_MODEL_NAME="scene_text_ensemble" \
+    --set redis.image.repository=bitnamilegacy/redis \
+    --set redis.image.tag=8.2.1-debian-12-r0 \
     --set image.repository="nvcr.io/nvidia/nemo-microservices/nv-ingest" \
-    --set image.tag="25.3.0"
+    --set image.tag="25.9.0"
+
+
+helm upgrade \
+    --install \
+    nv-ingest \
+  https://helm.ngc.nvidia.com/nvidia/nemo-microservices/charts/nv-ingest-25.9.0.tgz \
+  -n nv-ingest \
+  --username '$oauthtoken' \
+  --password "${NGC_API_KEY}" \
+  --set ngcImagePullSecret.create=true \
+  --set ngcImagePullSecret.password="${NGC_API_KEY}" \
+  --set ngcApiSecret.create=true \
+  --set ngcApiSecret.password="${NGC_API_KEY}" \
+  --set nemoretriever-ocr.deployed=true \
+  --set nemoretriever-ocr.image.repository="nvcr.io/nvstaging/nim/nemoretriever-ocr-v1" \
+  --set nemoretriever-ocr.image.tag="1.2.0-rc2-latest-release-38498041" \
+  --set paddleocr-nim.deployed=false \
+  --set envVars.OCR_MODEL_NAME="scene_text_ensemble" \
+  --set image.repository="nvcr.io/nvidia/nemo-microservices/nv-ingest" \
+  --set image.tag="25.9.0" \
+  --set redis.image.repository=bitnamilegacy/redis \
+  --set redis.image.tag=8.2.1-debian-12-r0 \
+  --wait --timeout 30m    
 ```
 
 ## Test NeMo Retriever Extraction
@@ -223,6 +251,9 @@ kubectl get svc -n nv-ingest
 Go to the test pod and go to the test data folder and run the following command
 ```
 nv-ingest-cli   --doc "./*.pdf"  --output_directory ./processed_docs   --task='extract:{"document_type": "pdf", "extract_text": true, "extract_images": true, "extract_tables": true, "extract_charts": true}'   --client_host=<cluster ip of nv-ingest>   --client_port=7670
+
+nv-ingest-cli   --doc "./*.pdf"  --output_directory ./processed_docs  --task='extract:{"document_type": "pdf", "extract_method": "pdfium", "extract_text": true, "extract_images": true, "extract_tables": true, "extract_tables_method": "yolox"}' --task='dedup:{"content_type": "image", "filter": true}' --task='filter:{"content_type": "image", "min_size": 128, "max_aspect_ratio": 5.0, "min_aspect_ratio": 0.2, "filter": true}' --client_host=<cluster ip of nv-ingest>   --client_port=7670
+
 ```
 Copy the test data to /mnt/azure and run the same command to test netapp performance
 
@@ -285,3 +316,13 @@ bo767
 | 1x Standard_ND96amsr_A100_v4                              | 32.77   |           |          |              |
 | 3x Standard_NC80ads_H100_v5                               | 41.88   |           |          |              |
 | 1x Standard_ND96isr_H100_v5                               | 98.32   |           |          |              |
+
+### Test Result (ver 25.9.0)
+
+bo767
+
+| ANF-ultra NFS                                             | $/hour  | Pages/sec | Pages /$ | Time slicing | 
+| --------------------------------------------------------- | ------- | --------- | -------- | ------------ |
+| 1x Standard_NC40ads_H100_v5                               |  6.98   | 12.84     | 6622     |   6          |
+| 1x Standard_NC80ads_H100_v5                               | 13.96   |           |          |   3          |
+| 1x Standard_ND96isr_H200_v5
