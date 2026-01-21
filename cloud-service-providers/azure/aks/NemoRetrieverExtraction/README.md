@@ -334,8 +334,7 @@ bo767
 | ANF-ultra NFS                                             | $/hour  | Pages/sec | Pages /$ | Time slicing | 
 | --------------------------------------------------------- | ------- | --------- | -------- | ------------ |
 | 1x Standard_NC24ads_A100_v4                               |  3.67   |           |          |   6          |
-| 1x Standard_NC48ads_A100_v4                               |  7.35   | 12.31     |          |   6          |
+| 1x Standard_NC48ads_A100_v4                               |  7.35   | 12.31     | 6029     |   6          |
 | 1x Standard_NC48ads_A100_v4                               |  7.35   |           |          |   3          |
-| 1x Standard_NC40ads_H100_v5                               |  6.98   |           |          |   6          |
+| 1x Standard_NC40ads_H100_v5                               |  6.98   | 13.37*    | 6895     |   6          |
 | 1x Standard_NC80ads_H100_v5                               | 13.96   |           |          |   3          |
-| 1x Standard_ND96isr_H200_v5
