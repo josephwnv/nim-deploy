@@ -333,8 +333,51 @@ bo767
 
 | ANF-ultra NFS                                             | $/hour  | Pages/sec | Pages /$ | Time slicing | 
 | --------------------------------------------------------- | ------- | --------- | -------- | ------------ |
-| 1x Standard_NC24ads_A100_v4                               |  3.67   |           |          |   6          |
-| 1x Standard_NC48ads_A100_v4                               |  7.35   | 12.31     | 6029     |   6          |
+| 1x Standard_NC24ads_A100_v4                               |  3.67   | 11.93*    | 11702    |   6          |
+| 1x Standard_NC48ads_A100_v4                               |  7.35   | 12.31     |  6029    |   6          |
 | 1x Standard_NC48ads_A100_v4                               |  7.35   |           |          |   3          |
-| 1x Standard_NC40ads_H100_v5                               |  6.98   | 13.37*    | 6895     |   6          |
+| 1x Standard_NC40ads_H100_v5                               |  6.98   | 13.37**   |  6895    |   6          |
 | 1x Standard_NC80ads_H100_v5                               | 13.96   |           |          |   3          |
+
+```
+* not official supported. need to modify the storageClass to azurefile-premium and change cpu t0 20000
+helm upgrade \
+    --install \
+    nv-ingest \
+    https://helm.ngc.nvidia.com/nvidia/nemo-microservices/charts/nv-ingest-26.1.1.tgz \
+    -n ${NAMESPACE} \
+    --username '$oauthtoken' \
+    --password "${NGC_API_KEY}" \
+    --set ngcImagePullSecret.create=true \
+    --set ngcImagePullSecret.password="${NGC_API_KEY}" \
+    --set ngcApiSecret.create=true \
+    --set ngcApiSecret.password="${NGC_API_KEY}" \
+    --set image.repository="nvcr.io/nvidia/nemo-microservices/nv-ingest" \
+    --set image.tag="26.1.1" \
+    --set milvus.etcd.persistence.storageClass="azurefile-premium" \
+    --set milvus.minio.persistence.storageClass="azurefile-premium" \
+    --set milvus.standalone.persistence.persistentVolumeClaim.storageClass="azurefile-premium" \
+    --set nimOperator.nimCache.pvc.storageClass="azurefile-premium" \
+    --set resources.requests.cpu="20000m"
+```
+
+```
+** need to modify the storageClass to azurefile-premium
+helm upgrade \
+    --install \
+    nv-ingest \
+    https://helm.ngc.nvidia.com/nvidia/nemo-microservices/charts/nv-ingest-26.1.1.tgz \
+    -n ${NAMESPACE} \
+    --username '$oauthtoken' \
+    --password "${NGC_API_KEY}" \
+    --set ngcImagePullSecret.create=true \
+    --set ngcImagePullSecret.password="${NGC_API_KEY}" \
+    --set ngcApiSecret.create=true \
+    --set ngcApiSecret.password="${NGC_API_KEY}" \
+    --set image.repository="nvcr.io/nvidia/nemo-microservices/nv-ingest" \
+    --set image.tag="26.1.1" \
+    --set milvus.etcd.persistence.storageClass="azurefile-premium" \
+    --set milvus.minio.persistence.storageClass="azurefile-premium" \
+    --set milvus.standalone.persistence.persistentVolumeClaim.storageClass="azurefile-premium" \
+    --set nimOperator.nimCache.pvc.storageClass="azurefile-premium"
+```
