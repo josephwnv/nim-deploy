@@ -144,6 +144,31 @@ spec:
 ```
 kubectl apply -f pvc-nfs.yaml
 ```
+## Deploy NIM Operator
+Use the following steps to install the NVIDIA NIM Operator on your Kubernetes cluster.
+
+### Add the Helm repository for NVIDIA:
+```
+helm repo add nvidia https://helm.ngc.nvidia.com/nvidia \
+   && helm repo update
+```
+### Create the Operator namespace:
+```
+kubectl create namespace nim-operator
+```
+### Install the Operator:
+```
+helm upgrade --install nim-operator nvidia/k8s-nim-operator -n nim-operator --version=3.0.2
+```
+### Optionally, confirm the controller pod is running:
+```
+kubectl get pods -n nim-operator
+```
+### Example Output
+```
+NAME                                            READY   STATUS    RESTARTS      AGE
+nim-operator-k8s-nim-operator-6b546f57d5-g4zgg  1/1     Running     0           35h
+```
 ## Deploy NeMo Retriever Extraction
 ```
 NAMESPACE=nv-ingest
