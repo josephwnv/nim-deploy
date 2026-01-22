@@ -331,13 +331,24 @@ bo767
 
 bo767
 
-| ANF-ultra NFS                                             | $/hour  | Pages/sec | Pages /$ | Time slicing | 
-| --------------------------------------------------------- | ------- | --------- | -------- | ------------ |
-| 1x Standard_NC24ads_A100_v4                               |  3.67   | 11.93*    | 11702    |   6          |
-| 1x Standard_NC48ads_A100_v4                               |  7.35   | 12.31     |  6029    |   6          |
-| 1x Standard_NC48ads_A100_v4                               |  7.35   |           |          |   3          |
-| 1x Standard_NC40ads_H100_v5                               |  6.98   | 13.37**   |  6895    |   6          |
-| 1x Standard_NC80ads_H100_v5                               | 13.96   |           |          |   3          |
+| ANF-ultra NFS                           | $/hour  | Pages/sec | Pages /$ | Time slicing | Regions                                        |
+| --------------------------------------- | ------- | --------- | -------- | ------------ | ---------------------------------------------- |
+| 1x Standard_NC24ads_A100_v4             |  3.67   | 11.93*    | 11702    |   6          | West US, West US2, West US3, East US, East US2 |
+| 1x Standard_NC24ads_A100_v4             |  4.15   |           |          |   6          | Central US                                     |
+| 1x Standard_NC24ads_A100_v4             |  4.408  |           |          |   6          | South Central US, North Central US             |
+| 1x Standard_NC48ads_A100_v4             |  7.346  | 12.31     |  6029    |   6          | West US, West US2, West US3, East US, East US2 |
+| 1x Standard_NC48ads_A100_v4             |  8.301  |           |          |   6          | Central US                                     |
+| 1x Standard_NC48ads_A100_v4             |  8.815  |           |          |   6          | South Central US, North Central US             |
+| 1x Standard_NC48ads_A100_v4             |  7.35   |           |          |   3          |                                                |
+| 1x Standard_NC40ads_H100_v5             |  6.98   | 13.37**   |  6895    |   6          | East US, East US2, West US2, West US3          |
+| 1x Standard_NC40ads_H100_v5             |  8.376  |           |          |   6          | North Central US, South Central US             |
+| 1x Standard_NC40ads_H100_v5             |  8.585  |           |          |   6          | Central US                                     |
+| 1x Standard_NC40ads_H100_v5             |  9.074  |           |          |   6          | West US                                        |
+| 1x Standard_NC80ads_H100_v5             | 13.96   |           |          |   3          |                                                |
+| 1x Standard_NC128ds_xl_RTXPRO6000BSE_v6 |  7.656  |           |          |   6          | North Europ                                    |
+| 1x Standard_NC128ds_xl_RTXPRO6000BSE_v6 |  7.853  |           |          |   6          | Central US                                     |
+| 1x Standard_NC128ds_xl_RTXPRO6000BSE_v6 |  8.294  |           |          |   6          | West US, South Asia                            |
+
 
 ```
 * not official supported. need to modify the storageClass to azurefile-premium and change cpu t0 20000
