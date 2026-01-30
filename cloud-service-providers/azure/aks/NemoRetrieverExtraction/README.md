@@ -205,24 +205,16 @@ helm upgrade \
 helm upgrade \
     --install \
     nv-ingest \
-  https://helm.ngc.nvidia.com/nvidia/nemo-microservices/charts/nv-ingest-25.9.0.tgz \
-  -n nv-ingest \
-  --username '$oauthtoken' \
-  --password "${NGC_API_KEY}" \
-  --set ngcImagePullSecret.create=true \
-  --set ngcImagePullSecret.password="${NGC_API_KEY}" \
-  --set ngcApiSecret.create=true \
-  --set ngcApiSecret.password="${NGC_API_KEY}" \
-  --set nemoretriever-ocr.deployed=true \
-  --set nemoretriever-ocr.image.repository="nvcr.io/nvstaging/nim/nemoretriever-ocr-v1" \
-  --set nemoretriever-ocr.image.tag="1.2.0-rc2-latest-release-38498041" \
-  --set paddleocr-nim.deployed=false \
-  --set envVars.OCR_MODEL_NAME="scene_text_ensemble" \
-  --set image.repository="nvcr.io/nvidia/nemo-microservices/nv-ingest" \
-  --set image.tag="25.9.0" \
-  --set redis.image.repository=bitnamilegacy/redis \
-  --set redis.image.tag=8.2.1-debian-12-r0 \
-  --wait --timeout 30m    
+    https://helm.ngc.nvidia.com/nvidia/nemo-microservices/charts/nv-ingest-26.1.2.tgz \
+    -n ${NAMESPACE} \
+    --username '$oauthtoken' \
+    --password "${NGC_API_KEY}" \
+    --set ngcImagePullSecret.create=true \
+    --set ngcImagePullSecret.password="${NGC_API_KEY}" \
+    --set ngcApiSecret.create=true \
+    --set ngcApiSecret.password="${NGC_API_KEY}" \
+    --set image.repository="nvcr.io/nvidia/nemo-microservices/nv-ingest" \
+    --set image.tag="26.1.2"
 ```
 
 ## Test NeMo Retriever Extraction
